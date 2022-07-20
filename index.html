@@ -1,0 +1,890 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <script src="./vue.js"></script>
+    <link rel="stylesheet" href="./index.css">
+    <title>test</title>
+</head>
+
+<body>
+    <div id="app">
+        <div id="pics">
+            <div class="pic">
+                <div class="normal">
+                    <input type="checkbox" id="checkbox_normal" checked="checked">
+                    <label for="checkbox_normal">普通</label>
+                    <span id="span_normal"></span>
+                </div>
+                <div class="check">
+                    <input type="checkbox" id="checkbox_check" checked="checked">
+                    <label for="checkbox_check">動檢</label>
+                    <span id="span_check"></span>
+                </div>
+            </div>
+            <div id="content_border">
+                <div class="day">
+                    <span v-for="day in days">{{day}}</span>
+                </div>
+                <div id="contents">
+                    <div class="time">
+                        <span v-for="time in times">{{time}}</span>
+                    </div>
+                    <div class="normal_check" @mousedown.stop="down" @mouseup.stop="up"
+                        @mousemove.stop="updatemousemove">
+
+
+                        <div v-for="(newdiv,index) in newdivs" v-if="newdivs!=null"
+                            :style="{'top':newdivs[index].top+'px' , 'width':newdivs[index].width+'px','left':newdivs[index].left+'px'}"
+                            :class="newdivs[index].class" @click.stop.prevent="del(index)" :id="newdivs[index].name">
+                        </div>
+
+                        <div :class="mousemove"
+                            :style="{top:movestatus.top+'px',left:movestatus.left+'px',width:movestatus.width+'px',height:movestatus.height+'px'}"
+                            v-if="showmousemove">
+                        </div>
+
+                    </div>
+                    <div class="btns">
+                        <input type="button" value="設置" v-for="(btn,index) in 8" :day=index @click="show_out(index)">
+                    </div>
+                </div>
+            </div>
+            <div id="btn_reflash">
+                <input type="button" value="默認" class="input_btn" @click="index_btn_default">
+                <input type="button" value="刷新" class="input_btn" @click="index_btn_reflash">
+                <input type="button" value="確認" class="input_btn" @click="index_btn_check">
+            </div>
+            <!-- 彈跳視窗 -->
+            <div id="out" :class="{'show':show_out_f}">
+                <div class="choose">
+                    <div class="setting">
+                        <span>設置</span>
+                        <span class="close" @click="out_cancel">X</span>
+                    </div>
+                    <div class="content">
+                        <div class="contentsborder">
+                            <div class="days">
+                                <input type="checkbox" id="all" :checked="checkall_f" @click="checkall_all">
+                                <label for="all">全部</label>
+                                <span v-for="(day,index) in days">
+                                    <input type="checkbox" :id="'day'+index" :value="'day'+index" v-model="chooseDays"
+                                        :disabled="disbled(index)">
+                                    <label :for="'day'+index" :class="{'redcolor':disbled(index)}">{{day}}</label>
+                                </span>
+                            </div>
+                            <div class="content_time_check">
+                                <div class="content_time_input">
+                                    <div class="content_time_border"
+                                        v-for="(inputtime,index) in inputtimes[clicksetting]">
+                                        <div>時間段{{index+1}}</div>
+                                        <div class="input_time first">
+                                            <input type="text" maxlength="2" v-model="inputtime.time1"
+                                                @blur.once="backneedclear(inputtime , 1 ,$event)">
+                                            <span class="input_time_span">:</span>
+                                            <input type="text" maxlength="2" v-model="inputtime.time2"
+                                                @blur.once="backneedclear(inputtime , 2 ,$event)">
+                                            <span class="input_time_span">:</span>
+                                            <input type="text" maxlength="2" v-model="inputtime.time3"
+                                                @blur.once="backneedclear(inputtime , 3 ,$event)">
+                                        </div>
+                                        <span class="input_time_-">-</span>
+                                        <div class="input_time">
+                                            <input type="text" maxlength="2" v-model="inputtime.time4"
+                                                @blur.once="backneedclear(inputtime , 4 ,$event)">
+                                            <span class="input_time_span">:</span>
+                                            <input type="text" maxlength="2" v-model="inputtime.time5"
+                                                @blur.once="backneedclear(inputtime , 5 ,$event)">
+                                            <span class="input_time_span">:</span>
+                                            <input type="text" maxlength="2" v-model="inputtime.time6"
+                                                @blur.once="backneedclear(inputtime , 6 ,$event)">
+                                        </div>
+                                        <input type="checkbox" :id="'inputtime'+index" :value="inputtime.status1"
+                                            v-model="inputtime.status1">
+                                        <label :for="'inputtime'+index">普通</label>
+                                        <input type="checkbox" :id="'inputtime'+index+'2'" :value="inputtime.status2"
+                                            v-model="inputtime.status2">
+                                        <label :for="'inputtime'+index+'2'">動檢</label>
+                                    </div>
+                                </div>
+                            </div>
+
+                        </div>
+                        <div class="btn_OK">
+                            <input type="button" value="確認" class="input_btn" @click.stop="out_ok">
+                            <input type="button" value="取消" class="input_btn" @click="out_cancel">
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+
+        </div>
+    </div>
+</body>
+
+<script>
+    new Vue({
+        el: '#app',
+        data: {
+            days: ['星期日', '星期一', '星期二', '星期三', '星期四', '星期五', '星期六', '假日'],
+            times: ['0', '2', '4', '6', '8', '10', '12', '14', '16', '18', '20', '22', '24'],
+            chooseDays: [],
+            inputtimes: [[
+                { time1: '00', time2: '00', time3: '00', time4: '23', time5: '59', time6: '59', status1: false, status2: false, top1: -1, top2: -1, left: -1 },
+                { time1: '00', time2: '00', time3: '00', time4: '23', time5: '59', time6: '59', status1: false, status2: false, top1: -1, top2: -1, left: -1 },
+                { time1: '00', time2: '00', time3: '00', time4: '23', time5: '59', time6: '59', status1: false, status2: false, top1: -1, top2: -1, left: -1 },
+                { time1: '00', time2: '00', time3: '00', time4: '23', time5: '59', time6: '59', status1: false, status2: false, top1: -1, top2: -1, left: -1 },
+                { time1: '00', time2: '00', time3: '00', time4: '23', time5: '59', time6: '59', status1: false, status2: false, top1: -1, top2: -1, left: -1 },
+                { time1: '00', time2: '00', time3: '00', time4: '23', time5: '59', time6: '59', status1: false, status2: false, top1: -1, top2: -1, left: -1 }
+            ],
+            [
+                { time1: '00', time2: '00', time3: '00', time4: '23', time5: '59', time6: '59', status1: false, status2: false, top1: -1, top2: -1, left: -1 },
+                { time1: '00', time2: '00', time3: '00', time4: '23', time5: '59', time6: '59', status1: false, status2: false, top1: -1, top2: -1, left: -1 },
+                { time1: '00', time2: '00', time3: '00', time4: '23', time5: '59', time6: '59', status1: false, status2: false, top1: -1, top2: -1, left: -1 },
+                { time1: '00', time2: '00', time3: '00', time4: '23', time5: '59', time6: '59', status1: false, status2: false, top1: -1, top2: -1, left: -1 },
+                { time1: '00', time2: '00', time3: '00', time4: '23', time5: '59', time6: '59', status1: false, status2: false, top1: -1, top2: -1, left: -1 },
+                { time1: '00', time2: '00', time3: '00', time4: '23', time5: '59', time6: '59', status1: false, status2: false, top1: -1, top2: -1, left: -1 }
+            ],
+            [
+                { time1: '00', time2: '00', time3: '00', time4: '23', time5: '59', time6: '59', status1: false, status2: false, top1: -1, top2: -1, left: -1 },
+                { time1: '00', time2: '00', time3: '00', time4: '23', time5: '59', time6: '59', status1: false, status2: false, top1: -1, top2: -1, left: -1 },
+                { time1: '00', time2: '00', time3: '00', time4: '23', time5: '59', time6: '59', status1: false, status2: false, top1: -1, top2: -1, left: -1 },
+                { time1: '00', time2: '00', time3: '00', time4: '23', time5: '59', time6: '59', status1: false, status2: false, top1: -1, top2: -1, left: -1 },
+                { time1: '00', time2: '00', time3: '00', time4: '23', time5: '59', time6: '59', status1: false, status2: false, top1: -1, top2: -1, left: -1 },
+                { time1: '00', time2: '00', time3: '00', time4: '23', time5: '59', time6: '59', status1: false, status2: false, top1: -1, top2: -1, left: -1 }
+            ],
+            [
+                { time1: '00', time2: '00', time3: '00', time4: '23', time5: '59', time6: '59', status1: false, status2: false, top1: -1, top2: -1, left: -1 },
+                { time1: '00', time2: '00', time3: '00', time4: '23', time5: '59', time6: '59', status1: false, status2: false, top1: -1, top2: -1, left: -1 },
+                { time1: '00', time2: '00', time3: '00', time4: '23', time5: '59', time6: '59', status1: false, status2: false, top1: -1, top2: -1, left: -1 },
+                { time1: '00', time2: '00', time3: '00', time4: '23', time5: '59', time6: '59', status1: false, status2: false, top1: -1, top2: -1, left: -1 },
+                { time1: '00', time2: '00', time3: '00', time4: '23', time5: '59', time6: '59', status1: false, status2: false, top1: -1, top2: -1, left: -1 },
+                { time1: '00', time2: '00', time3: '00', time4: '23', time5: '59', time6: '59', status1: false, status2: false, top1: -1, top2: -1, left: -1 }
+            ],
+            [
+                { time1: '00', time2: '00', time3: '00', time4: '23', time5: '59', time6: '59', status1: false, status2: false, top1: -1, top2: -1, left: -1 },
+                { time1: '00', time2: '00', time3: '00', time4: '23', time5: '59', time6: '59', status1: false, status2: false, top1: -1, top2: -1, left: -1 },
+                { time1: '00', time2: '00', time3: '00', time4: '23', time5: '59', time6: '59', status1: false, status2: false, top1: -1, top2: -1, left: -1 },
+                { time1: '00', time2: '00', time3: '00', time4: '23', time5: '59', time6: '59', status1: false, status2: false, top1: -1, top2: -1, left: -1 },
+                { time1: '00', time2: '00', time3: '00', time4: '23', time5: '59', time6: '59', status1: false, status2: false, top1: -1, top2: -1, left: -1 },
+                { time1: '00', time2: '00', time3: '00', time4: '23', time5: '59', time6: '59', status1: false, status2: false, top1: -1, top2: -1, left: -1 }
+            ],
+            [
+                { time1: '00', time2: '00', time3: '00', time4: '23', time5: '59', time6: '59', status1: false, status2: false, top1: -1, top2: -1, left: -1 },
+                { time1: '00', time2: '00', time3: '00', time4: '23', time5: '59', time6: '59', status1: false, status2: false, top1: -1, top2: -1, left: -1 },
+                { time1: '00', time2: '00', time3: '00', time4: '23', time5: '59', time6: '59', status1: false, status2: false, top1: -1, top2: -1, left: -1 },
+                { time1: '00', time2: '00', time3: '00', time4: '23', time5: '59', time6: '59', status1: false, status2: false, top1: -1, top2: -1, left: -1 },
+                { time1: '00', time2: '00', time3: '00', time4: '23', time5: '59', time6: '59', status1: false, status2: false, top1: -1, top2: -1, left: -1 },
+                { time1: '00', time2: '00', time3: '00', time4: '23', time5: '59', time6: '59', status1: false, status2: false, top1: -1, top2: -1, left: -1 }
+            ],
+            [
+                { time1: '00', time2: '00', time3: '00', time4: '23', time5: '59', time6: '59', status1: false, status2: false, top1: -1, top2: -1, left: -1 },
+                { time1: '00', time2: '00', time3: '00', time4: '23', time5: '59', time6: '59', status1: false, status2: false, top1: -1, top2: -1, left: -1 },
+                { time1: '00', time2: '00', time3: '00', time4: '23', time5: '59', time6: '59', status1: false, status2: false, top1: -1, top2: -1, left: -1 },
+                { time1: '00', time2: '00', time3: '00', time4: '23', time5: '59', time6: '59', status1: false, status2: false, top1: -1, top2: -1, left: -1 },
+                { time1: '00', time2: '00', time3: '00', time4: '23', time5: '59', time6: '59', status1: false, status2: false, top1: -1, top2: -1, left: -1 },
+                { time1: '00', time2: '00', time3: '00', time4: '23', time5: '59', time6: '59', status1: false, status2: false, top1: -1, top2: -1, left: -1 }
+            ],
+            [
+                { time1: '00', time2: '00', time3: '00', time4: '23', time5: '59', time6: '59', status1: false, status2: false, top1: -1, top2: -1, left: -1 },
+                { time1: '00', time2: '00', time3: '00', time4: '23', time5: '59', time6: '59', status1: false, status2: false, top1: -1, top2: -1, left: -1 },
+                { time1: '00', time2: '00', time3: '00', time4: '23', time5: '59', time6: '59', status1: false, status2: false, top1: -1, top2: -1, left: -1 },
+                { time1: '00', time2: '00', time3: '00', time4: '23', time5: '59', time6: '59', status1: false, status2: false, top1: -1, top2: -1, left: -1 },
+                { time1: '00', time2: '00', time3: '00', time4: '23', time5: '59', time6: '59', status1: false, status2: false, top1: -1, top2: -1, left: -1 },
+                { time1: '00', time2: '00', time3: '00', time4: '23', time5: '59', time6: '59', status1: false, status2: false, top1: -1, top2: -1, left: -1 }
+            ]
+            ],
+            needcleartime: [],
+            show_out_f: false,
+            checkall_f: false,
+            watchcheckall: false,
+            newdivs: [],
+            movestatus: { top: 0, left: 0, width: 0, height: 0 },
+            setmovepos: { top: 0, left: 0 },
+            showmousemove: false,
+            clicksetting: 0,
+            delstatus: false,
+            deltimes: [],
+            deltimesstatus: false,
+            mousemove: '',
+            defaultstatus: false,
+            sort: false,
+        },
+        methods: {
+            stringNumber(time) {
+                return String(Math.floor(time)).length == 1 ? '0' + String(Math.floor(time)) : String(Math.floor(time));
+            },
+            backneedclear(item, index, event) {
+                if (index == '1') {
+                    item.time1 = this.stringNumber(event.target.value);
+                }
+                if (index == '2') {
+                    item.time2 = this.stringNumber(event.target.value);
+                }
+                if (index == '3') {
+                    item.time3 = this.stringNumber(event.target.value);
+                }
+                if (index == '4') {
+                    item.time4 = this.stringNumber(event.target.value);
+                }
+                if (index == '5') {
+                    item.time5 = this.stringNumber(event.target.value);
+                }
+                if (index == '6') {
+                    item.time6 = this.stringNumber(event.target.value);
+                }
+            },
+            checkall_all() {
+                if (!this.checkall_f) {
+                    for (let i = 0; i < 8; i++) {
+                        // if (this.chooseDays.indexOf('day' + i) == 'day' + this.clicksetting) continue;
+                        if (this.chooseDays.indexOf('day' + i) == -1) {
+                            this.chooseDays.push('day' + i);
+                        }
+                    }
+                } else {
+                    this.chooseDays = ['day' + this.clicksetting];
+                }
+            },
+            show_out(index) {
+                this.sort = true;
+                this.clicksetting = index;
+                this.chooseDays.push('day' + index);
+
+                this.show_out_f = !this.show_out_f;
+
+            },
+            disbled(index) {
+                if (this.chooseDays[0] == 'day' + index) {
+                    return true;
+                }
+            },
+            out_cancel() {
+                this.chooseDays = [];
+                let newinputtimes = this.inputtimes[this.clicksetting];
+                this.needcleartime.forEach(function (item, index) {
+                    newinputtimes[index].time1 = item.time1;
+                    newinputtimes[index].time2 = item.time2;
+                    newinputtimes[index].time3 = item.time3;
+                    newinputtimes[index].time4 = item.time4;
+                    newinputtimes[index].time5 = item.time5;
+                    newinputtimes[index].time6 = item.time6;
+                    newinputtimes[index].status1 = item.status1;
+                    newinputtimes[index].status2 = item.status2;
+                    newinputtimes[index].left = item.left;
+                    newinputtimes[index].top1 = item.top1;
+                    newinputtimes[index].top2 = item.top2;
+                })
+                this.needcleartime = [];
+                this.show_out_f = !this.show_out_f;
+            },
+            out_ok() {
+
+                let cacheinputtime = this.inputtimes;
+                let choose_day = this.clicksetting;
+                let get_time = cacheinputtime[this.clicksetting];  //拿更改後的數值
+                const clonechangeitem = JSON.parse(JSON.stringify(get_time));
+
+                let string_function = this.stringNumber;
+                this.chooseDays.forEach(function (item, index) {
+                    let num = item.replace('day', '');
+
+                    let newinputtimes = cacheinputtime[num]; //取得勾選項目內的原始數值
+                    let new_type = [];
+                    // 將沒有填寫過的過濾出來
+                    let indexs = [];
+                    let push_index = 0;
+                    for (let i = 0; i < newinputtimes.length; i++) {
+                        if (newinputtimes[i].status1 == false && newinputtimes[i].status2 == false) {
+                            indexs.push(i);
+                        }
+                    }
+                    // 將新增數值放回去
+                    if (num != choose_day) {
+                        // 判斷時間軸是否相同 若相同直接更改status
+                        newinputtimes.forEach(function (item, index) {
+                            if (clonechangeitem[index].time1 == item.time1 && clonechangeitem[index].time2 == item.time2 && clonechangeitem[index].time3 == item.time3 && clonechangeitem[index].time4 == item.time4 && clonechangeitem[index].time5 == item.time5 && clonechangeitem[index].time6 == item.time6) {
+                                item.status1 = clonechangeitem[index].status1;
+                                item.status2 = clonechangeitem[index].status2;
+                            } else {
+                                new_type.push(clonechangeitem[index]);
+                            }
+                        })
+                        // console.log(new_type);
+                        // 將不同時間軸寫回選取的時間點
+                        new_type.forEach(function (item, index) {
+                            const cloneitem = JSON.parse(JSON.stringify(item));
+
+                            if (cloneitem.status1 == true || cloneitem.status2 == true) {
+                                if (indexs.length != 0 && push_index < indexs.length) {  //判斷是否有位子能夠放數值
+                                    const cloneitems = JSON.parse(JSON.stringify(newinputtimes[indexs[push_index]]));
+                                    let lefts = 0;
+                                    let top1 = 0;
+                                    let top2 = 0;
+                                    lefts = (cloneitem.time1 / 0.5) * 11 + (cloneitem.time2 * 0.2) + (cloneitem.time3 * 0.2);
+                                    if (cloneitem.status1 && cloneitem.status2) {
+                                        top1 = num * 30;
+                                        top2 = 10 + num * 30;
+                                    } else if (cloneitem.status1) {
+                                        top1 = num * 30;
+                                        top2 = -1;
+                                    } else if (cloneitem.status2) {
+                                        top1 = -1;
+                                        top2 = 10 + num * 30;
+
+                                    }
+
+
+                                    cloneitems.time1 = cloneitem.time1;
+                                    cloneitems.time2 = cloneitem.time2;
+                                    cloneitems.time3 = cloneitem.time3;
+                                    cloneitems.time4 = cloneitem.time4;
+                                    cloneitems.time5 = cloneitem.time5;
+                                    cloneitems.time6 = cloneitem.time6;
+                                    cloneitems.status1 = cloneitem.status1;
+                                    cloneitems.status2 = cloneitem.status2;
+                                    cloneitems.left = lefts;
+                                    cloneitems.top1 = top1;
+                                    cloneitems.top2 = top2;
+
+                                    // console.log(cloneitems);
+                                    newinputtimes[indexs[push_index]].time1 = cloneitems.time1;
+                                    newinputtimes[indexs[push_index]].time2 = cloneitems.time2;
+                                    newinputtimes[indexs[push_index]].time3 = cloneitems.time3;
+                                    newinputtimes[indexs[push_index]].time4 = cloneitems.time4;
+                                    newinputtimes[indexs[push_index]].time5 = cloneitems.time5;
+                                    newinputtimes[indexs[push_index]].time6 = cloneitems.time6;
+                                    newinputtimes[indexs[push_index]].status1 = cloneitems.status1;
+                                    newinputtimes[indexs[push_index]].status2 = cloneitems.status2;
+                                    newinputtimes[indexs[push_index]].left = cloneitems.left;
+                                    newinputtimes[indexs[push_index]].top1 = cloneitems.top1;
+                                    newinputtimes[indexs[push_index]].top2 = cloneitems.top2;
+
+                                    // console.log(push_index);
+                                    push_index++;
+                                }
+                            }
+                        })
+                    }
+                    // 將 status1 and status2狀態為flase的時間軸回復初始直
+                    newinputtimes.forEach(function (item) {
+                        if (item.status1 == false && item.status2 == false) {
+                            item.time1 = '00';
+                            item.time2 = '00';
+                            item.time3 = '00';
+                            item.time4 = '23';
+                            item.time5 = '59';
+                            item.time6 = '59';
+                            item.left = -1;
+                            item.top1 = -1;
+                            item.top2 = -1;
+                        }
+
+                    })
+
+                    // 整理數值
+                    // const res = newinputtimes.sort(function (a, b) {
+
+                    //     return Number(b.time1) - Number(a.time1);
+
+                    // });
+                    // console.log(res);
+
+                })
+
+                // })
+                // // 將時間軸寫入div
+                let new_for_white = this.newdivs;
+                new_for_white.splice(0, new_for_white.length);
+                this.inputtimes.forEach(function (item, index) {
+                    item.forEach(function (items, indexs) {
+                        if (items.status1 || items.status2) {
+                            let totals = {};
+                            if (items.status1 && items.status2) {
+                                totals.style1 = 'green_pic';
+                                totals.style2 = 'yellow_pic';
+                                totals.top1 = index * 30;
+                                totals.top2 = 10 + index * 30;
+                                items.top1 = totals.top1;
+                                items.top2 = totals.top2;
+                            } else if (items.status1) {
+
+                                totals.style1 = 'green_pic';
+                                totals.top1 = index * 30;
+                                items.top1 = totals.top1;
+                                items.top2 = -1;
+                            } else if (items.status2) {
+
+                                totals.style2 = 'yellow_pic';
+                                totals.top2 = 10 + index * 30;
+                                items.top1 = -1;
+                                items.top2 = totals.top2;
+                            }
+                            let start_sec = Number(items.time1) * 3600 + Number(items.time2) * 60 + Number(items.time3);
+                            let end_sec = Number(items.time4) * 3600 + Number(items.time5) * 60 + Number(items.time6);
+
+                            let newLeft = Math.round((start_sec / 60 / 30) * 11);
+                            let newWidth = Math.round(((end_sec / 60 / 30) * 11)) - newLeft;
+                            totals.lefts = newLeft;
+                            totals.widths = newWidth;
+                            items.left = totals.lefts;
+                            if (totals.style1 && totals.style2) {
+                                new_for_white.push({ top: totals.top1, left: totals.lefts, id: index, width: totals.widths, class: totals.style1 });
+                                new_for_white.push({ top: totals.top2, left: totals.lefts, id: index, width: totals.widths, class: totals.style2 });
+                            } else if (totals.style1) {
+                                new_for_white.push({ top: totals.top1, left: totals.lefts, id: index, width: totals.widths, class: totals.style1 });
+                            } else {
+                                new_for_white.push({ top: totals.top2, left: totals.lefts, id: index, width: totals.widths, class: totals.style2 });
+
+                            }
+                        }
+                    })
+
+                })
+                this.sort = true;
+                this.chooseDays = [];
+                this.needcleartime = [];
+                this.show_out_f = !this.show_out_f;
+            },
+            index_btn_default() {
+                // 新增default 且移除時間軸所有時間
+                let cache_inputtimes = this.inputtimes;
+                cache_inputtimes.forEach(function (item, index) {
+                    item.forEach(function (items, indexs) {
+                        items.time1 = '00';
+                        items.time2 = '00';
+                        items.time3 = '00';
+                        items.time4 = '23';
+                        items.time5 = '59';
+                        items.time6 = '59';
+                        items.left = -1;
+                        items.top1 = -1;
+                        items.top2 = -1;
+                        items.status1 = false;
+                        items.status2 = false;
+
+                    })
+                })
+                this.newdivs = [];
+                for (let i = 0; i < 8; i++) {
+                    let j = 30 * i;
+                    const type_value = { top: 10 + j, name: `defaults${i}`, width: 530, class: 'yellow_pic', id: i, left: 0 };
+                    this.newdivs.push(type_value);
+                }
+                this.defaultstatus = true;
+                this.delstatus = true;
+            },
+            index_btn_reflash() {
+                // 新增default 且移除時間軸所有時間
+                let cache_inputtimes = this.inputtimes;
+                cache_inputtimes.forEach(function (item, index) {
+                    item.forEach(function (items, indexs) {
+                        items.time1 = '00';
+                        items.time2 = '00';
+                        items.time3 = '00';
+                        items.time4 = '23';
+                        items.time5 = '59';
+                        items.time6 = '59';
+                        items.left = -1;
+                        items.top1 = -1;
+                        items.top2 = -1;
+                        items.status1 = false;
+                        items.status2 = false;
+
+                    })
+                })
+                this.newdivs = [];
+                for (let i = 0; i < 8; i++) {
+                    let j = 30 * i;
+                    const type_value = { top: 10 + j, name: `defaults${i}`, width: 530, class: 'yellow_pic', id: i, left: 0 };
+                    this.newdivs.push(type_value);
+                }
+                this.defaultstatus = true;
+                this.delstatus = true;
+            },
+            index_btn_check() {
+
+            },
+            del(index) {
+                // 刪除點選的div及移除時間軸
+                this.delstatus = false;  //為了不讓watch div動作
+                let cache_newdiv = this.newdivs[index];
+                let cache_inputtimes = this.inputtimes;
+                cache_inputtimes[cache_newdiv.id].forEach(function (item, indexs) {
+                    if (cache_newdiv.left == item.left && (cache_newdiv.top == item.top1 || cache_newdiv.top == item.top2)) {
+                        let status = '';
+                        if (cache_newdiv.top == item.top1) {
+                            status = 'green';
+                        } else {
+                            status = 'yellow';
+                        }
+                        if (item.top1 != -1 && item.top2 != -1) {
+                            if (status == 'green') {
+                                item.top1 = -1;
+                                item.status1 = false;
+                            } else {
+                                item.top2 = -1;
+                                item.status2 = false;
+                            }
+
+                        } else if (cache_newdiv.top == item.top1) {
+                            item.left = -1
+                            item.top1 = -1;
+                            item.status1 = false;
+                            item.time1 = '00';
+                            item.time2 = '00';
+                            item.time3 = '00';
+                            item.time4 = '23';
+                            item.time5 = '59';
+                            item.time6 = '59';
+                        } else {
+                            item.left = -1
+                            item.top2 = -1;
+                            item.status2 = false;
+                            item.time1 = '00';
+                            item.time2 = '00';
+                            item.time3 = '00';
+                            item.time4 = '23';
+                            item.time5 = '59';
+                            item.time6 = '59';
+                        }
+
+                    }
+
+                })
+                this.newdivs.splice(index, 1);
+            },
+            down(event) {
+                if (event.target.getAttribute('class') == 'yellow_pic' || event.target.getAttribute('class') == 'green_pic') {
+                    this.mousemove = 'mousemovedel';
+                } else {
+                    this.mousemove = 'mousemoveadd';
+                }
+                this.showmousemove = !this.showmousemove;
+                this.movestatus.left = event.clientX - 56;
+                this.movestatus.top = event.clientY - 51;
+                this.setmovepos.left = event.clientX - 56;
+                this.setmovepos.top = event.clientY - 51;
+            },
+            up(event) {
+                this.showmousemove = false;
+            },
+            updatemousemove(event) {
+                // 滑鼠移動拉框
+
+                if (this.showmousemove) {
+                    let mouseX = event.clientX - 56;
+                    let mouseY = event.clientY - 51;
+                    let startX = this.setmovepos.left;
+                    let startY = this.setmovepos.top;
+                    if (event.clientX < 56 || event.clientY < 53 || event.clientX > 585 || event.clientY > 290) {
+                        this.up();
+                    }
+                    // 左上
+                    if (mouseX < startX && mouseY < startY) {
+                        this.movestatus.left = mouseX;
+                        this.movestatus.top = mouseY;
+                        this.movestatus.width = startX - mouseX;
+                        this.movestatus.height = startY - mouseY;
+                    }
+                    // 右上
+                    if (mouseX > startX && mouseY < startY) {
+                        this.movestatus.left = startX;
+                        this.movestatus.top = mouseY;
+                        this.movestatus.width = mouseX - startX;
+                        this.movestatus.height = startY - mouseY;
+                    }
+                    // 左下
+                    if (mouseX < startX && mouseY > startY) {
+                        this.movestatus.left = mouseX;
+                        this.movestatus.top = startY;
+                        this.movestatus.width = startX - mouseX;
+                        this.movestatus.height = mouseY - startY;
+                    }
+                    // 右下
+                    if (mouseX > startX && mouseY > startY) {
+
+                        this.movestatus.width = mouseX - startX;
+                        this.movestatus.height = mouseY - startY;
+
+                    }
+                }
+
+            },
+        },
+        computed: {
+
+        },
+        watch: {
+            sort: function (newvalue, oldvalue) {
+                if (this.sort == true) {
+                    // 排序
+                    this.sort = false;
+                    this.inputtimes.forEach(function (item) {
+                        const res = item.sort(function (a, b) {
+                            return Number(b.time1) - Number(a.time1);
+                        });
+
+                    })
+                    this.inputtimes.forEach(function (item) {
+                        const res = item.sort(function (a, b) {
+                            if (Number(a.time1) == 0 && a.status1 == false && a.status2 == false) {
+                                return 1;
+                            }
+                            return Number(a.time1) - Number(b.time1);
+
+                        });
+
+                    })
+                }
+            },
+            chooseDays: function () {
+                // 偵測是否全選日期
+                if (this.chooseDays.length == 8) {
+
+                    this.checkall_f = !this.checkall_f;
+                } else {
+                    this.checkall_f = false;
+                }
+
+            },
+            newdivs: function (newvalue, oldvalue) {
+                // 將新增的div寫回時間軸
+
+                if (this.delstatus == true) {
+                    // 拉框 寫回時間軸
+                    let newinputtimes = this.inputtimes;
+                    let oldid = -1;
+                    newvalue.forEach((item, index) => {
+                        let id = item.id;
+                        let status = item.class;
+                        let width = item.width;
+                        let left = item.left;
+                        let writes = 0;
+                        let indexs = [];
+                        let push_index = 0;
+                        for (let i = 0; i < newinputtimes[id].length; i++) {
+                            if (newinputtimes[id][i].status1 == false && newinputtimes[id][i].status2 == false) {
+                                indexs.push(i);
+                            }
+                        }
+                        let newleft = [];
+                        for (let i = 0; i < newinputtimes[id].length; i++) {
+                            newleft.push(newinputtimes[id][i].left);
+                        }
+                        if (id != oldid) {
+                            for (let i = 0; i < newinputtimes[id].length; i++) {
+                                if (newleft.includes(left)) break;
+                                if (writes != 0) {
+                                    oldid = id;
+                                    break;
+                                }
+                                // console.log('2');
+                                let newindexs = indexs[push_index];
+                                if (this.defaultstatus) {   //如果有點及更新 defaultstatus =true
+                                    newinputtimes[id][newindexs].status2 = true;
+                                    newinputtimes[id][newindexs].top2 = item.top;
+                                    newinputtimes[id][newindexs].status1 = false;
+                                    newinputtimes[id][newindexs].top1 = -1;
+                                    this.defaultstatus = false;
+                                } else if (this.mousemove == 'mousemoveadd') {  //如果滑鼠新增
+                                    newinputtimes[id][newindexs].top1 = item.top;
+                                    newinputtimes[id][newindexs].status1 = true;
+                                    newinputtimes[id][newindexs].status2 = true;
+                                    newinputtimes[id][newindexs].top2 = item.top + 10;
+
+                                } else if (item.top % 30 == 0) {  //一般情況偵測 status
+                                    newinputtimes[id][newindexs].top1 = item.top;
+                                    newinputtimes[id][newindexs].status1 = true;
+
+                                    newinputtimes[id][newindexs].status2 = false;
+                                    newinputtimes[id][newindexs].top2 = -1;
+                                } else if (item.top % 30 == 10) { //一般情況偵測 status
+                                    newinputtimes[id][newindexs].status2 = true;
+                                    newinputtimes[id][newindexs].top2 = item.top + 10;
+                                    newinputtimes[id][newindexs].status1 = false;
+                                    newinputtimes[id][newindexs].top1 = -1;
+                                }
+
+                                // 總格子數 48 = 11一格 一格0.5H 30min =
+                                let start_sec = (left / 11) * 30 * 60;
+                                let end_sec = ((left + width) / 11) * 30 * 60;
+
+                                let hrStart = Math.floor(start_sec / 3600);
+                                let minStart = Math.floor((start_sec - (hrStart * 3600)) / 60);
+                                let secStart = Math.floor((start_sec - (hrStart * 3600)) - (minStart * 60));;
+
+                                let hrEnd = Math.floor(end_sec / 3600);
+                                if (hrEnd == 24) {
+                                    hrEnd = 23;
+                                }
+                                let minEnd = Math.floor((end_sec - (hrEnd * 3600)) / 60);
+                                if (minEnd >= 60) {
+                                    minEnd = 59;
+                                }
+                                let secEnd = Math.floor((end_sec - (hrEnd * 3600)) - (minEnd * 60));;
+                                if (secEnd >= 60) {
+                                    secEnd = 59;
+                                }
+                                newinputtimes[id][newindexs].left = left;
+                                newinputtimes[id][newindexs].time1 = this.stringNumber(hrStart);
+                                newinputtimes[id][newindexs].time2 = this.stringNumber(minStart);
+                                newinputtimes[id][newindexs].time3 = this.stringNumber(secStart);
+                                newinputtimes[id][newindexs].time4 = this.stringNumber(hrEnd);
+                                newinputtimes[id][newindexs].time5 = this.stringNumber(minEnd);
+                                newinputtimes[id][newindexs].time6 = this.stringNumber(secEnd);
+                                writes++;
+                            }
+
+
+                        }
+                    })
+                    this.mousemove = '';
+                    this.delstatus = false;
+                }
+                this.sort = true;
+                // this.inputtimes.forEach(function (item) {
+                //     const res = item.sort(function (a, b) {
+                //         console.log('1');
+                //         return Number(b.time1) - Number(a.time1);
+                //     });
+
+                // })
+
+
+            },
+            showmousemove: function (newvalue, oldvalue) {
+                if (!newvalue && this.movestatus.width != 0 && this.movestatus.height != 0) {
+                    this.deltimesstatus = true;
+                    this.delstatus = true;
+                    const movevalue = this.movestatus;
+                    let cachenewdivs = this.newdivs;
+                    let cachedeltimes = this.deltimes;
+                    let cacheinputs = this.inputtimes;
+                    let status = 0;
+                    if (this.mousemove == 'mousemovedel') {  //偵測是del還是add
+                        // 刪除div
+                        cachenewdivs.forEach(function (item, index) {
+                            let itemIndex = Math.floor(item.top / 30);
+                            let top1 = itemIndex * 30;
+                            let top3 = itemIndex * 30 + 30;
+
+                            // item.left <= movevalue.left && item.left + item.width > movevalue.left + movevalue.width
+                            // item.left >= movevalue.left && item.left + item.width > movevalue.left + movevalue.width
+                            // item.left > movevalue.left && item.left + item.width < movevalue.left + movevalue.width
+
+                            // (item.left >= movevalue.left && item.left + item.width <= movevalue.left + movevalue.width)
+                            if (((item.left <= movevalue.left && item.left + item.width > movevalue.left) ||
+                                (item.left > movevalue.left && item.left + item.width < movevalue.left + movevalue.width) ||
+                                (item.left < movevalue.left + movevalue.width && item.left + item.width > movevalue.left + movevalue.width)) &&
+                                movevalue.top <= top3 &&
+                                movevalue.top + movevalue.height >= top1) {
+                                // console.log(index);
+                                status = 1;
+                                cachedeltimes.push(item);
+                                cachenewdivs.splice(index, 1, -1);
+                            }
+                        })
+                        if (status == 1) {
+                            this.newdivs = [...new Set(this.newdivs)];
+                            this.newdivs.splice(this.newdivs.indexOf(-1), 1);
+                        }
+
+                    } else {
+                        // 新增div
+                        cacheinputs.forEach(function (item, index) {
+                            let top1 = index * 30;
+                            let top2 = 10 + index * 30;
+                            let top3 = index * 30 + 30;
+
+                            if (movevalue.top <= top3 && movevalue.top + movevalue.height >= top1) {
+                                cachenewdivs.push({ top: top1, left: movevalue.left, id: index, width: movevalue.width, class: 'green_pic' });
+                                cachenewdivs.push({ top: top2, left: movevalue.left, id: index, width: movevalue.width, class: 'yellow_pic' });
+
+                            }
+                        })
+
+                    }
+                    // this.inputtimes.forEach(function (item) {
+                    //     const res = item.sort(function (a, b) {
+                    //         return Number(b.time1) - Number(a.time1);
+
+                    //     });
+
+                    // })
+                    this.sort = true;
+                    this.movestatus.left = 0;
+                    this.movestatus.top = 0;
+                    this.movestatus.width = 0;
+                    this.movestatus.height = 0;
+                    console.log('3');
+                }
+            },
+            deltimes: function (newvalue, oldvalue) {
+                // 框選 刪除時間
+                if (this.deltimesstatus) {
+
+                    this.delstatus = true;  //為了不讓watch div動作
+                    const cache_newvalue = newvalue;
+                    let cache_newdiv = this.newdivs;
+                    let cache_inputtimes = this.inputtimes;
+                    for (let item in cache_newvalue) {
+                        let new_value_index = cache_newvalue[item];
+                        for (let items in cache_inputtimes[new_value_index.id]) {
+                            if (cache_inputtimes[new_value_index.id][items].left == new_value_index.left && (cache_inputtimes[new_value_index.id][items].top == new_value_index.top1 || cache_inputtimes[new_value_index.id][items].top == new_value_index.top2)) {
+                                cache_inputtimes[new_value_index.id][items].left = -1
+                                cache_inputtimes[new_value_index.id][items].top1 = -1;
+                                cache_inputtimes[new_value_index.id][items].top2 = -1;
+                                cache_inputtimes[new_value_index.id][items].status1 = false;
+                                cache_inputtimes[new_value_index.id][items].status2 = false;
+                                cache_inputtimes[new_value_index.id][items].time1 = '00';
+                                cache_inputtimes[new_value_index.id][items].time2 = '00';
+                                cache_inputtimes[new_value_index.id][items].time3 = '00';
+                                cache_inputtimes[new_value_index.id][items].time4 = '23';
+                                cache_inputtimes[new_value_index.id][items].time5 = '59';
+                                cache_inputtimes[new_value_index.id][items].time6 = '59';
+
+                            }
+                        }
+                    }
+                    this.deltimes = [];
+                    this.deltimesstatus = false;
+                }
+            }
+        },
+        mounted() {
+            let cache_inputtimes = this.inputtimes;
+            cache_inputtimes.forEach(function (item, index) {
+                item.forEach(function (items, indexs) {
+                    items.time1 = '00';
+                    items.time2 = '00';
+                    items.time3 = '00';
+                    items.time4 = '23';
+                    items.time5 = '59';
+                    items.time6 = '59';
+                    items.left = -1;
+                    items.top1 = -1;
+                    items.top2 = -1;
+                    items.status1 = false;
+                    items.status2 = false;
+
+                })
+            })
+            this.newdivs = [];
+            for (let i = 0; i < 8; i++) {
+                let j = 30 * i;
+                const type_value = { top: 10 + j, name: `defaults${i}`, width: 530, class: 'yellow_pic', id: i, left: 0 };
+                this.newdivs.push(type_value);
+            }
+            this.defaultstatus = true;
+            this.delstatus = true;
+        },
+
+    })
+</script>
+
+</html>
