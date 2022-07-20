@@ -254,7 +254,13 @@
                 this.sort = true;
                 this.clicksetting = index;
                 this.chooseDays.push('day' + index);
-
+                this.needcleartime = [];
+                let newinputtimes = this.inputtimes[this.clicksetting];
+                let nnedClearTime = this.needcleartime;
+                const cloneitem = JSON.parse(JSON.stringify(newinputtimes));
+                cloneitem.forEach(function (item) {
+                    nnedClearTime.push(item);
+                })
                 this.show_out_f = !this.show_out_f;
 
             },
@@ -266,7 +272,8 @@
             out_cancel() {
                 this.chooseDays = [];
                 let newinputtimes = this.inputtimes[this.clicksetting];
-                this.needcleartime.forEach(function (item, index) {
+                const cloneitem = JSON.parse(JSON.stringify(this.needcleartime));
+                cloneitem.forEach(function (item, index) {
                     newinputtimes[index].time1 = item.time1;
                     newinputtimes[index].time2 = item.time2;
                     newinputtimes[index].time3 = item.time3;
@@ -821,7 +828,6 @@
                     this.movestatus.top = 0;
                     this.movestatus.width = 0;
                     this.movestatus.height = 0;
-                    console.log('3');
                 }
             },
             deltimes: function (newvalue, oldvalue) {
